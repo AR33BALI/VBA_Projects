@@ -1,0 +1,106 @@
+Option Explicit
+
+'--Sort for samples IDs (A-#####) with "None" fixative to select only dry brushes--
+Sub WeWantBrushes()
+Dim i As Double, n As Double
+
+'I don't think I need this, but it makes me feel comfortable
+Range("B6", Range("B6").End(xlDown)).Select
+n = Selection.Rows.Count
+
+'Counter instead to go through entries instead of rows
+'Or create key of final entry -> This is because as the sub deletes rows from selection,
+'    it ends up going through many empty cells in as list shrinks within selection
+For i = 6 To Selection.Rows.Count + 6
+    If n = 0 Then
+        GoTo There
+        
+    ElseIf IsEmpty(Cells(i, 2)) Then
+        GoTo Here
+        
+    ElseIf Not (Cells(i, 2).Value Like "A-?????" And Cells(i, 5).Value Like "None") Then
+        Rows([i]).EntireRow.Delete
+        i = i - 1
+        End If
+Here:
+    Next
+    
+There:
+End Sub
+
+'--Relocates desired fields to relevant columns, removes remaining data fields--
+Sub SetColumnsBrush()
+'date collected
+Columns("C").Value = Columns("K").Value
+'Number of cytobrushes
+Columns("D").Value = Columns("W").Value
+'G.A. Weeks
+Columns("E").Value = Columns("O").Value
+'G.A. Days
+Columns("F").Value = Columns("P").Value
+'date processed
+Columns("G").Value = Columns("Y").Value
+'Create Time before Processing, Column H
+Columns("H").EntireColumn.ClearContents
+Cells(5, 8).Value = "Time before processing"
+'Initial Cell Count
+Columns("I").Value = Columns("AF").Value
+'Cell Enrichment Comments
+Columns("J").Value = Columns("AI").Value
+'Fetal Cell Count
+Columns("K").Value = Columns("AO").Value
+'B-hCG+ Count
+Columns("L").Value = Columns("AP").Value
+'+DAPI Count
+Columns("M").Value = Columns("AQ").Value
+'Purity
+Columns("N").Value = Columns("AR").Value
+'Post-TRIC Comments
+Columns("O").Value = Columns("AS").Value
+'Fetal DNA
+Columns("P").Value = Columns("AY").Value
+'Create Expected DNA (pg) -> Fetal cells x 6
+Columns("Q").EntireColumn.ClearContents
+Cells(5, 17).Value = "Expected DNA (pg)"
+'Create DNA Yield -> Fetal DNA / Expected DNA
+Columns("R").EntireColumn.ClearContents
+Cells(5, 18).Value = "DNA Recovery (%)"
+'DNA Extracction Comments
+Columns("S").Value = Columns("BK").Value
+'Remove the rest
+Columns("T:ZZ").Clear
+End Sub
+
+
+
+'-- Calculates "Days before processing", "Expected DNA (pg)" and "DNA Yield (%)
+Sub CalcColumns()
+Dim i As Integer, nr As Integer
+Range("B6", Range("B6").End(xlDown)).Select
+nr = Selection.Rows.Count
+
+For i = 6 To nr + 5
+    'Date before processing
+    If IsDate(Cells(i, 3).Value) And IsDate(Cells(i, 7).Value) Then
+        Cells(i, 8).Value = DateDiff("d", Cells(i, 3).Value, Cells(i, 7).Value)
+    End If
+    'fetal cells x 6 = expected DNA
+    If IsNumeric(Cells(i, 11).Value) Then
+        Cells(i, 17).Value = Cells(i, 11).Value * 6
+        'If DNA Yield and Expected DNA are numbers, find percentage
+        If IsNumeric(Cells(i, 16).Value) And IsNumeric(Cells(i, 17).Value) Then
+            If Cells(i, 17).Value = 0 And Cells(i, 16) <> 0 Then
+                Cells(i, 18).Value = "Contamination"
+                Cells(i, 18).HorizontalAlignment = xlRight
+            ElseIf Cells(i, 17).Value = 0 Then
+                Cells(i, 18).Value = "N/A"
+                Cells(i, 18).HorizontalAlignment = xlRight
+            Else: Cells(i, 18).Value = Cells(i, 16) / Cells(i, 17).Value
+                Cells(i, 18).NumberFormat = "0.0%"
+            End If
+        End If
+    End If
+
+Next
+    
+End Sub
